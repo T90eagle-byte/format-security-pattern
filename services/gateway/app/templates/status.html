@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Состояние · Контроль форматов{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">СОСТОЯНИЕ СЕРВИСОВ</p>
+        <h1>Состояние системы</h1>
+        <p>Текущая доступность микросервисов и инфраструктурных компонентов.</p>
+    </div>
+</section>
+
+<section class="status-grid" aria-label="Состояние компонентов">
+    {% for component in components %}
+    <article class="card status-card status-card--{{ component.state|lower }}">
+        <div>
+            <span class="status-indicator" aria-hidden="true"></span>
+            <h2>{{ component.name }}</h2>
+        </div>
+        <strong>{{ component.state }}</strong>
+    </article>
+    {% endfor %}
+</section>
+
+<section class="card external-links">
+    <div>
+        <p class="eyebrow">Инструменты</p>
+        <h2>Консоли инфраструктуры</h2>
+        <p>Ссылки открывают локальные интерфейсы. Учётные данные не передаются со страницы.</p>
+    </div>
+    <div class="external-links__items">
+        <a href="http://localhost:9090" target="_blank" rel="noopener noreferrer"><span>Prometheus</span><b aria-hidden="true">↗</b></a>
+        <a href="http://localhost:3000" target="_blank" rel="noopener noreferrer"><span>Grafana</span><b aria-hidden="true">↗</b></a>
+        <a href="http://localhost:9001" target="_blank" rel="noopener noreferrer"><span>MinIO Console</span><b aria-hidden="true">↗</b></a>
+    </div>
+</section>
+{% endblock %}

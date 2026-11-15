@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inspector
+  namespace: format-security
+  labels:
+    app.kubernetes.io/name: inspector
+    app.kubernetes.io/part-of: format-security
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: inspector
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: inspector
+        app.kubernetes.io/part-of: format-security
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: inspector
+          image: format-security-inspector:local
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          env:
+            - name: SERVICE_NAME
+              value: inspector
+            - name: SERVICE_PORT
+              value: "8081"
+            - name: MAX_UPLOAD_SIZE_BYTES
+              valueFrom:
+                configMapKeyRef:
+                  name: format-security-config
+                  key: MAX_UPLOAD_SIZE_BYTES
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inspector
+  namespace: format-security
+  labels:
+    app.kubernetes.io/name: inspector
+    app.kubernetes.io/part-of: format-security
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: inspector
+  ports:
+    - name: http
+      port: 8081
+      targetPort: http
+      protocol: TCP

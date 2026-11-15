@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Загрузка · Контроль форматов{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <p class="eyebrow">Точка входа</p>
+        <h1>Система контроля формата входных данных</h1>
+        <p class="hero__subtitle">Проверка соответствия заявленного и фактического формата перед сохранением</p>
+    </div>
+    <div class="hero__flow" aria-label="Этапы обработки">
+        <span>Определение</span><i aria-hidden="true"></i>
+        <span>Валидация</span><i aria-hidden="true"></i>
+        <span>Решение</span>
+    </div>
+</section>
+
+<div class="workspace-grid">
+    <section class="card upload-card" aria-labelledby="upload-title">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Новая проверка</p>
+                <h2 id="upload-title">Загрузите входной объект</h2>
+            </div>
+            <span class="format-note">JSON · XML · CSV</span>
+        </div>
+
+        <form id="ingest-form" class="upload-form" enctype="multipart/form-data">
+            <label class="file-control" for="file-input">
+                <span class="file-control__icon" aria-hidden="true">↑</span>
+                <span class="file-control__copy">
+                    <strong id="file-label">Выберите файл</strong>
+                    <small>Объект будет проверен перед маршрутизацией в хранилище</small>
+                </span>
+                <span class="file-control__action">Обзор</span>
+                <input id="file-input" name="file" type="file" required>
+            </label>
+            <button id="submit-button" class="primary-button" type="submit">
+                <span>Проверить и обработать</span>
+                <span class="button-arrow" aria-hidden="true">→</span>
+            </button>
+        </form>
+        <p id="form-message" class="form-message" role="status" aria-live="polite"></p>
+    </section>
+
+    <aside class="card policy-card" aria-labelledby="policy-title">
+        <p class="eyebrow">Политика обработки</p>
+        <h2 id="policy-title">Результат определяет маршрут</h2>
+        <ul class="policy-list">
+            <li><span class="status-dot status-dot--accept"></span><div><strong>{{ decision_labels['ACCEPT'] }}</strong><small>Проверенный объект сохраняется в trusted</small></div></li>
+            <li><span class="status-dot status-dot--quarantine"></span><div><strong>{{ decision_labels['QUARANTINE'] }}</strong><small>Несоответствие формата изолируется для анализа</small></div></li>
+            <li><span class="status-dot status-dot--reject"></span><div><strong>{{ decision_labels['REJECT'] }}</strong><small>Некорректный объект не сохраняется</small></div></li>
+        </ul>
+    </aside>
+</div>
+
+<section id="result-panel" class="card result-panel" hidden aria-labelledby="result-title">
+    <div class="result-panel__header">
+        <div>
+            <p class="eyebrow">Результат обработки</p>
+            <h2 id="result-title">Решение по входному объекту</h2>
+        </div>
+        <span id="decision-badge" class="decision-badge"></span>
+    </div>
+    <dl class="result-grid">
+        <div><dt>Имя файла</dt><dd data-field="filename">—</dd></div>
+        <div><dt>Request ID</dt><dd class="mono" data-field="request_id">—</dd></div>
+        <div><dt>Заявленный формат</dt><dd data-field="declared_format">—</dd></div>
+        <div><dt>Фактический формат</dt><dd data-field="detected_format">—</dd></div>
+        <div><dt>Структурная проверка</dt><dd data-field="validation_status">—</dd></div>
+        <div><dt>Решение</dt><dd data-field="decision">—</dd></div>
+        <div><dt>Причина</dt><dd data-field="reason">—</dd></div>
+        <div><dt>Объект сохранён</dt><dd data-field="stored">—</dd></div>
+        <div><dt>Хранилище</dt><dd data-field="bucket">—</dd></div>
+        <div class="result-grid__wide"><dt>Имя объекта</dt><dd class="mono" data-field="object_name">—</dd></div>
+    </dl>
+    <p id="audit-warning" class="inline-warning" hidden>Результат получен, но событие аудита временно не сохранено.</p>
+</section>
+{% endblock %}

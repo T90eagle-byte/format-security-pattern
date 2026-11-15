@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Тестовые объекты · Контроль форматов{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">Демонстрационные сценарии</p>
+        <h1>Генератор тестовых объектов</h1>
+        <p>Подготовленные сценарии для демонстрации работы защитного конвейера.</p>
+    </div>
+    <span class="count-pill">{{ scenarios | length }} сценариев</span>
+</section>
+
+<section class="scenario-grid" aria-label="Каталог тестовых объектов">
+    {% for scenario in scenarios %}
+    <article class="card scenario-card" data-scenario-card="{{ scenario.id }}">
+        <div class="scenario-card__heading">
+            <div>
+                <p class="eyebrow">Сценарий {{ loop.index }}</p>
+                <h2>{{ scenario.title }}</h2>
+            </div>
+            <span class="decision-badge decision--{{ scenario.expected.decision | lower }}">
+                {{ decision_labels.get(scenario.expected.decision, scenario.expected.decision) }}
+            </span>
+        </div>
+        <p class="scenario-card__description">{{ scenario.description }}</p>
+        <dl class="scenario-meta">
+            <div><dt>Имя файла</dt><dd class="mono">{{ scenario.filename }}</dd></div>
+            <div><dt>MIME</dt><dd class="mono">{{ scenario.mime_type }}</dd></div>
+            <div><dt>Ожидаемая причина</dt><dd>{{ reason_labels.get(scenario.expected.reason, scenario.expected.reason or "—") }}</dd></div>
+            <div><dt>Ожидаемое хранилище</dt><dd>{{ scenario.expected.bucket or "—" }}</dd></div>
+        </dl>
+        <div class="scenario-actions">
+            <button
+                class="primary-button js-send-scenario"
+                type="button"
+                data-scenario-id="{{ scenario.id }}"
+            >
+                <span>Отправить в систему</span>
+                <span class="button-arrow" aria-hidden="true">→</span>
+            </button>
+            <button
+                class="secondary-button js-download-scenario"
+                type="button"
+                data-scenario-id="{{ scenario.id }}"
+            >Скачать файл</button>
+        </div>
+        <p class="form-message js-scenario-message" role="status" aria-live="polite"></p>
+    </article>
+    {% endfor %}
+</section>
+
+<section id="test-result-panel" class="card result-panel" hidden aria-labelledby="test-result-title">
+    <div class="result-panel__header">
+        <div>
+            <p class="eyebrow">Ожидаемый / фактический результат</p>
+            <h2 id="test-result-title">Результат демонстрационного сценария</h2>
+        </div>
+        <span id="test-decision-badge" class="decision-badge"></span>
+    </div>
+    <div class="scenario-comparison">
+        <div>
+            <span>Ожидаемый результат</span>
+            <strong id="expected-result">—</strong>
+        </div>
+        <div>
+            <span>Фактический результат</span>
+            <strong id="actual-result">—</strong>
+        </div>
+    </div>
+    <p id="scenario-outcome" class="form-message" role="status" aria-live="polite"></p>
+    <dl class="result-grid">
+        <div><dt>Имя файла</dt><dd data-test-field="filename">—</dd></div>
+        <div><dt>Request ID</dt><dd class="mono" data-test-field="request_id">—</dd></div>
+        <div><dt>Заявленный формат</dt><dd data-test-field="declared_format">—</dd></div>
+        <div><dt>Фактический формат</dt><dd data-test-field="detected_format">—</dd></div>
+        <div><dt>Валидация</dt><dd data-test-field="validation_status">—</dd></div>
+        <div><dt>Решение</dt><dd data-test-field="decision">—</dd></div>
+        <div><dt>Причина</dt><dd data-test-field="reason">—</dd></div>
+        <div><dt>Сохранён ли объект</dt><dd data-test-field="stored">—</dd></div>
+        <div><dt>Хранилище</dt><dd data-test-field="bucket">—</dd></div>
+        <div class="result-grid__wide"><dt>Имя объекта</dt><dd class="mono" data-test-field="object_name">—</dd></div>
+    </dl>
+</section>
+
+<script id="test-object-scenarios" type="application/json">{{ scenarios | tojson }}</script>
+{% endblock %}

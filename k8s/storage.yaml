@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storage
+  namespace: format-security
+  labels:
+    app.kubernetes.io/name: storage
+    app.kubernetes.io/part-of: format-security
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: storage
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: storage
+        app.kubernetes.io/part-of: format-security
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: storage
+          image: format-security-storage:local
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          ports:
+            - name: http
+              containerPort: 8083
+              protocol: TCP
+          env:
+            - name: SERVICE_NAME
+              value: storage
+            - name: SERVICE_PORT
+              value: "8083"
+            - name: MINIO_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: format-security-config
+                  key: MINIO_ENDPOINT
+            - name: MINIO_SECURE
+              valueFrom:
+                configMapKeyRef:
+                  name: format-security-config
+                  key: MINIO_SECURE
+            - name: MAX_UPLOAD_SIZE_BYTES
+              valueFrom:
+                configMapKeyRef:
+                  name: format-security-config
+                  key: MAX_UPLOAD_SIZE_BYTES
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: format-security-secrets
+                  key: MINIO_ROOT_USER
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: format-security-secrets
+                  key: MINIO_ROOT_PASSWORD
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 18
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: storage
+  namespace: format-security
+  labels:
+    app.kubernetes.io/name: storage
+    app.kubernetes.io/part-of: format-security
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: storage
+  ports:
+    - name: http
+      port: 8083
+      targetPort: http
+      protocol: TCP

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Карантин · Контроль форматов{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">Изолированное хранение</p>
+        <h1>Объекты в карантине</h1>
+        <p>Файлы с противоречивыми признаками формата, сохранённые для дальнейшего анализа.</p>
+    </div>
+    <span class="count-pill count-pill--warning">{{ objects|length }} объектов</span>
+</section>
+
+{% if error %}
+<div class="notice notice--error" role="alert">{{ error }}</div>
+{% elif not objects %}
+<div class="card empty-state"><strong>В карантине нет объектов</strong><span>Несоответствия формата будут отображаться здесь.</span></div>
+{% else %}
+<section class="card table-card">
+    <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>Имя объекта</th>
+                    <th>Размер</th>
+                    <th>Дата</th>
+                    <th>Причина</th>
+                    <th>Фактический формат</th>
+                    <th>Request ID</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for object in objects %}
+                {% set metadata = object.get('metadata') or {} %}
+                <tr>
+                    <td class="mono mono--small table-strong">{{ object.get('object_name') or '—' }}</td>
+                    <td><span class="js-size" data-bytes="{{ object.get('size', 0) }}">{{ object.get('size', 0) }} B</span></td>
+                    <td><time class="js-date" datetime="{{ object.get('last_modified', '') }}">{{ object.get('last_modified') or '—' }}</time></td>
+                    <td>{{ reason_labels.get(metadata.get('reason'), metadata.get('reason') or '—') }}</td>
+                    <td>{{ metadata.get('detected_format') or '—' }}</td>
+                    <td class="mono mono--small">{{ metadata.get('request_id') or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

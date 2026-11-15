@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Система контроля формата входных данных">
+    <title>{% block title %}Система контроля формата{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+</head>
+<body>
+    <header class="topbar">
+        <div class="shell topbar__inner">
+            <a class="brand" href="/" aria-label="На главную">
+                <span class="brand__mark" aria-hidden="true">FS</span>
+                <span>
+                    <strong>Контроль форматов</strong>
+                    <small>Контроль входных данных</small>
+                </span>
+            </a>
+            <nav class="navigation" aria-label="Основная навигация">
+                <a href="/" class="navigation__link{% if active_page == 'upload' %} is-active{% endif %}">Загрузка</a>
+                <a href="/test-objects" class="navigation__link{% if active_page == 'test-objects' %} is-active{% endif %}">Тестовые объекты</a>
+                <a href="/history" class="navigation__link{% if active_page == 'history' %} is-active{% endif %}">История</a>
+                <a href="/quarantine" class="navigation__link{% if active_page == 'quarantine' %} is-active{% endif %}">Карантин</a>
+                <a href="/status" class="navigation__link{% if active_page == 'status' %} is-active{% endif %}">Состояние системы</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="shell page-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="shell footer">
+        <span>Контроль форматов</span>
+        <span>Проверка · Валидация · Безопасное хранение</span>
+    </footer>
+    <script id="presentation-labels" type="application/json">{{ presentation_labels | tojson }}</script>
+    <script src="{{ url_for('static', path='/app.js') }}" defer></script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+name: format-security-pattern
+
+x-service-common: &service-common
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  networks:
+    - format-security-network
+  healthcheck:
+    test:
+      - CMD-SHELL
+      - "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:$${SERVICE_PORT}/health')\""
+    interval: 10s
+    timeout: 3s
+    retries: 5
+    start_period: 5s
+
+services:
+  gateway:
+    <<: *service-common
+    build:
+      context: ./services/gateway
+    environment:
+      SERVICE_NAME: gateway
+      SERVICE_PORT: "8080"
+      INSPECTOR_URL: ${INSPECTOR_URL:-http://inspector:8081}
+      VALIDATOR_URL: ${VALIDATOR_URL:-http://validator:8082}
+      STORAGE_URL: ${STORAGE_URL:-http://storage:8083}
+      AUDIT_URL: ${AUDIT_URL:-http://audit:8084}
+      GATEWAY_HEALTH_URL: ${GATEWAY_HEALTH_URL:-http://localhost:8080/health}
+      MINIO_HEALTH_URL: ${MINIO_HEALTH_URL:-http://minio:9000/minio/health/live}
+      PROMETHEUS_HEALTH_URL: ${PROMETHEUS_HEALTH_URL:-http://prometheus:9090/-/healthy}
+      GRAFANA_HEALTH_URL: ${GRAFANA_HEALTH_URL:-http://grafana:3000/api/health}
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-10485760}
+      DOWNSTREAM_TIMEOUT_SECONDS: ${DOWNSTREAM_TIMEOUT_SECONDS:-10}
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      inspector:
+        condition: service_healthy
+      validator:
+        condition: service_healthy
+      storage:
+        condition: service_healthy
+      audit:
+        condition: service_healthy
+
+  inspector:
+    <<: *service-common
+    build:
+      context: ./services/inspector
+    environment:
+      SERVICE_NAME: inspector
+      SERVICE_PORT: "8081"
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-10485760}
+
+  validator:
+    <<: *service-common
+    build:
+      context: ./services/validator
+    environment:
+      SERVICE_NAME: validator
+      SERVICE_PORT: "8082"
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-10485760}
+
+  storage:
+    <<: *service-common
+    build:
+      context: ./services/storage
+    environment:
+      SERVICE_NAME: storage
+      SERVICE_PORT: "8083"
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+      MINIO_SECURE: ${MINIO_SECURE:-false}
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-10485760}
+    depends_on:
+      minio:
+        condition: service_started
+
+  audit:
+    <<: *service-common
+    build:
+      context: ./services/audit
+    environment:
+      SERVICE_NAME: audit
+      SERVICE_PORT: "8084"
+      DATABASE_URL: postgresql://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-format_security}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-format_security}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - format-security-network
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - format-security-network
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - format-security-network
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?Set GRAFANA_ADMIN_USER in .env}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - format-security-network
+    depends_on:
+      prometheus:
+        condition: service_started
+
+networks:
+  format-security-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  minio-data:
+  prometheus-data:
+  grafana-data:

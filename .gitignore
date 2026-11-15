@@ -1,0 +1,27 @@
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+.idea/
+.vscode/
+*.log
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Local configuration, credentials and generated artifacts
+.env.*
+!.env.example
+k8s/secrets.yaml
+k8s/secrets.local.yaml
+*.pem
+*.key
+*.p12
+*.pfx
+*.zip
+.coverage
+htmlcov/

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}История · Контроль форматов{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">ЖУРНАЛ АУДИТА</p>
+        <h1>История обработки</h1>
+        <p>Последние решения системы, новые события отображаются первыми.</p>
+    </div>
+    <span class="count-pill">{{ events|length }} событий</span>
+</section>
+
+{% if error %}
+<div class="notice notice--error" role="alert">{{ error }}</div>
+{% elif not events %}
+<div class="card empty-state"><strong>История пока пуста</strong><span>Обработанные объекты появятся здесь.</span></div>
+{% else %}
+<section class="card table-card">
+    <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>Время</th>
+                    <th>Имя файла</th>
+                    <th>Заявленный</th>
+                    <th>Фактический</th>
+                    <th>Валидация</th>
+                    <th>Решение</th>
+                    <th>Причина</th>
+                    <th>Request ID</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in events %}
+                <tr>
+                    <td><time class="js-date" datetime="{{ event.get('timestamp', '') }}">{{ event.get('timestamp') or '—' }}</time></td>
+                    <td class="table-strong">{{ event.get('filename') or '—' }}</td>
+                    <td>{{ event.get('declared_format') or '—' }}</td>
+                    <td>{{ event.get('detected_format') or '—' }}</td>
+                    <td>{{ validation_status_labels.get(event.get('validation_status'), event.get('validation_status') or '—') }}</td>
+                    <td><span class="decision-badge decision--{{ (event.get('decision') or '')|lower }}">{{ decision_labels.get(event.get('decision'), event.get('decision') or '—') }}</span></td>
+                    <td>{{ reason_labels.get(event.get('reason'), event.get('reason') or '—') }}</td>
+                    <td class="mono mono--small">{{ event.get('request_id') or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
